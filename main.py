@@ -1,9 +1,11 @@
 import os
 import shutil
-import cv2
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, HttpUrl
 from qreader import QReader
+import cv2
 import requests
 from tempfile import NamedTemporaryFile
 import uvicorn
@@ -18,19 +20,21 @@ matplotlib.use('Agg')  # Non-interactive backend to avoid GUI dependencies
 
 app = FastAPI()
 
-# Define the request model
 class ImageUrlRequest(BaseModel):
     image_url: HttpUrl
 
-
-@app.post("/process-qrcode/")
-async def process_qrcode(request: ImageUrlRequest):
+@app.get("/", response_class=PlainTextResponse)
+async def index():
     """
-    Download an image from the provided URL, process it to detect QR codes,
-    and return the decoded text.
+    Serve a plain text response for the root route.
     """
-    image_url = request.image_url
+    return "hello world"
 
+@app.get("/process-qrcode/", response_class=HTMLResponse)
+async def process_qrcode(image_url: HttpUrl = Query(...)):
+    """
+    Process the image URL provided as a query parameter, detect QR codes, and return the result.
+    """
     # Create a temporary directory to store the downloaded image
     with NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
         temp_image_path = tmp_file.name
@@ -53,15 +57,14 @@ async def process_qrcode(request: ImageUrlRequest):
             os.unlink(temp_image_path)
 
             if decoded_text:
-                return {"qr_text": decoded_text[0]}
+                return f"<h1>QR Code Text: {decoded_text[0]}</h1>"
             else:
-                raise HTTPException(status_code=404, detail="No QR code detected in the image.")
+                return "<h1>No QR code detected in the image.</h1>"
 
         except requests.exceptions.RequestException as e:
             raise HTTPException(status_code=400, detail=f"Failed to download the image: {e}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error processing the image: {e}")
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
