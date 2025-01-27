@@ -1,8 +1,10 @@
 # To be able to successful run you need 
 ## Install qrcode dependencies
-sudo apt update
-sudo apt install libgl1
-sudo apt-get install libzbar0
+`sudo apt update`
+
+`sudo apt install libgl1`
+
+`sudo apt-get install libzbar0`
 
 
 
