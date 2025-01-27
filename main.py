@@ -1,7 +1,7 @@
 import os
 import shutil
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, HttpUrl
 from qreader import QReader
@@ -23,17 +23,17 @@ app = FastAPI()
 class ImageUrlRequest(BaseModel):
     image_url: HttpUrl
 
-@app.get("/", response_class=PlainTextResponse)
+@app.get("/", response_class=JSONResponse)
 async def index():
     """
-    Serve a plain text response for the root route.
+    Serve a plain JSON response for the root route.
     """
-    return "hello world"
+    return {"message": "hello world"}
 
-@app.get("/process-qrcode/", response_class=HTMLResponse)
+@app.get("/process-qrcode/", response_class=JSONResponse)
 async def process_qrcode(image_url: HttpUrl = Query(...)):
     """
-    Process the image URL provided as a query parameter, detect QR codes, and return the result.
+    Process the image URL provided as a query parameter, detect QR codes, and return the result in JSON format.
     """
     # Create a temporary directory to store the downloaded image
     with NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
@@ -57,9 +57,9 @@ async def process_qrcode(image_url: HttpUrl = Query(...)):
             os.unlink(temp_image_path)
 
             if decoded_text:
-                return f"<h1>QR Code Text: {decoded_text[0]}</h1>"
+                return {"success": True, "decoded_text": decoded_text[0]}
             else:
-                return "<h1>No QR code detected in the image.</h1>"
+                return {"success": False, "message": "No QR code detected in the image."}
 
         except requests.exceptions.RequestException as e:
             raise HTTPException(status_code=400, detail=f"Failed to download the image: {e}")
